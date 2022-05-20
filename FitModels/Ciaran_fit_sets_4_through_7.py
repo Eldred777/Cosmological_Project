@@ -5,6 +5,7 @@ Based off Ciaran_Fit_Modules.ipynb.
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy import integrate
+import corner
 
 # First let's set up our packages
 import numpy as np
@@ -27,7 +28,7 @@ print(f"Check that this path is correct! {cd=}")
 def ezinv(z, om=0.3, ol=0.7, w0=-1.0, wa=0.0, orr=0.0):
     ok = 1.0 - om - ol - orr
     a = 1 / (1 + z)
-    wl = w0 + wa * (1 + a)
+    wl = w0 + wa * (1 - a)
     ez = np.sqrt(
         orr * (1 + z) ** 4
         + om * (1 + z) ** 3
@@ -77,14 +78,20 @@ def read_data(model_name):
 # for filename in ["Data4", "Data5", "Data6", "Data7"]:
 for filename in ["Data4"]:
     zs, mu, muerr = read_data(filename)
+    # for speed, we are going to take only a subset of the available data
+    step = 20  # step size along zs array
+    zs_sliced = zs[0:-1:step]
+    mu_sliced = mu[0:-1:step]
+    muerr_sliced = muerr[0:-1:step]
+    print(f"{filename}: {len(zs)=}")
 
     # Set up the arrays for the models you want to test, e.g. a range of Omega_m and Omega_Lambda models:
-    n = 21  # Increase this for a finer grid
-    oms = np.linspace(0.0, 0.5, n)  # Array of matter densities
-    ols = np.linspace(0.0, 1.0, n)  # Array of cosmological constant values
-    w0s = np.linspace(-1.0, 1.0, n)  # array of initial dark energy equations of state
-    was = np.linspace(0.5, 0.5, n)
-    orrs = np.linspace(0.0, 0.5, n)
+    n = 5
+    oms = np.linspace(0.0, 1, n)
+    orrs = np.linspace(0.0, 1, n)
+    ols = np.linspace(0.0, 1.0, n)
+    w0s = np.linspace(-1.0, 0, n)
+    was = np.linspace(-1.5, 0.5, n)
 
     # Array to hold our chi2 values, set initially to super large values
     chi2 = np.ones((n, n, n, n, n)) * np.inf
@@ -96,15 +103,17 @@ for filename in ["Data4"]:
                 for l, wa in enumerate(was):
                     for m, orr in enumerate(orrs):
                         # calculate the distance modulus vs redshift for that model
-                        mu_model = dist_mod(zs, om=om, ol=ol)
-                        # Calculate the vertical offset to apply
-                        mscr = np.sum((mu_model - mu) / muerr**2) / np.sum(
-                            1.0 / muerr**2
+                        mu_model = dist_mod(
+                            zs_sliced, om=om, ol=ol, w0=w0, wa=wa, orr=orr
                         )
+                        # Calculate the vertical offset to apply
+                        mscr = np.sum(
+                            (mu_model - mu_sliced) / muerr_sliced**2
+                        ) / np.sum(1.0 / muerr**2)
                         mu_model_norm = mu_model - mscr  # Apply the vertical offset
                         # Calculate the chi2 and save it in a matrix
                         chi2[i, j, k, l, m] = np.sum(
-                            (mu_model_norm - mu) ** 2 / muerr**2
+                            (mu_model_norm - mu_sliced) ** 2 / muerr_sliced**2
                         )
 
     # # Convert that to a likelihood and calculate the reduced chi2
@@ -112,55 +121,60 @@ for filename in ["Data4"]:
     #     -0.5 * (chi2 - np.amin(chi2))
     # )  # convert the chi^2 to a likelihood (np.amin(chi2) calculates the minimum of the chi^2 array)
     chi2_reduced = chi2 / (
-        len(mu) - 2
+        len(mu) - 5
     )  # calculate the reduced chi^2, i.e. chi^2 per degree of freedom, where dof = number of data points minus number of parameters being fitted
 
     # Calculate the best fit values (where chi2 is minimum)
-    indbest = np.argmin(
+    ind_best = np.argmin(
         chi2
     )  # Gives index of best fit but where the indices are just a single number
     ibest = np.unravel_index(
-        indbest, [n, n, n, n, n]
+        ind_best, [n, n, n, n, n]
     )  # Converts the best fit index to the 2d version (i,j)
+    print(f"Index of best fit, {ind_best=} corresponding to {chi2[ibest]=}")
     print(f"Best fit values are (om,ol)=({oms[ibest[0]]:.3f},{ols[ibest[1]]:.3f})")
-    print(f"Reduced chi^2 for the best fit is {chi2_reduced[ibest[0],ibest[1]]:0.2f}")
+    print(
+        f"Reduced chi^2 for the best fit is {chi2_reduced[ibest[0],ibest[1],ibest[2],ibest[3], ibest[4]]:0.2f}"
+    )
+
+    figure = corner.corner
 
     # Plot contours of 1, 2, and 3 sigma
-    fig, ax = plt.subplots()
+    # fig, ax = plt.subplots()
 
-    ax.contour(
-        oms,
-        ols,
-        np.transpose(chi2 - np.amin(chi2)),
-        cmap="winter",
-        **{"levels": [2.30, 6.18, 11.83]},
-    )
-    ax.plot(
-        oms[ibest[0]],
-        ols[ibest[1]],
-        "x",
-        color="black",
-        label=f"(om,ol,w0, wa, orr)=({oms[ibest[0]]:.3f},{oms[ibest[1]]:.3f},{oms[ibest[2]]:.3f},{oms[ibest[3]]:.3f},{oms[ibest[4]]:.3f})",
-    )
-    ax.set_xlabel("$\Omega_m$", fontsize=12)
-    ax.set_ylabel("$\Omega_\Lambda$", fontsize=12)
-    ax.plot(
-        [oms[0], oms[1]],
-        [ols[0], ols[1]],
-        "-",
-        color="black",
-        label="Step size indicator",
-    )  # Delete this line after making step size smaller!
-    ax.legend(frameon=False)
-    fig.savefig(  # save png
-        f"{cd}/FitModels/plots/C_contours_{filename}.ngf",
-        bbox_inches="tight",
-        transparent=True,
-    )
-    fig.savefig(  # save pdf
-        f"{cd}/FitModels/plots/C_contours_{filename}.pdf",
-        bbox_inches="tight",
-        transparent=True,
-    )
+    # ax.contour(  # ! not working yet
+    #     oms,
+    #     ols,
+    #     np.transpose(chi2 - np.amin(chi2)),
+    #     cmap="winter",
+    #     **{"levels": [2.30, 6.18, 11.83]},
+    # )
+    # ax.plot(
+    #     oms[ibest[0]],
+    #     ols[ibest[1]],
+    #     "x",
+    #     color="black",
+    #     label=f"(om,ol,w0, wa, orr)=({oms[ibest[0]]:.3f},{oms[ibest[1]]:.3f},{oms[ibest[2]]:.3f},{oms[ibest[3]]:.3f},{oms[ibest[4]]:.3f})",
+    # )
+    # ax.set_xlabel("$\Omega_m$", fontsize=12)
+    # ax.set_ylabel("$\Omega_\Lambda$", fontsize=12)
+    # ax.plot(
+    #     [oms[0], oms[1]],
+    #     [ols[0], ols[1]],
+    #     "-",
+    #     color="black",
+    #     label="Step size indicator",
+    # )  # Delete this line after making step size smaller!
+    # ax.legend(frameon=False)
+    # fig.savefig(  # save png
+    #     f"{cd}/FitModels/plots/C_contours_{filename}.ngf",
+    #     bbox_inches="tight",
+    #     transparent=True,
+    # )
+    # fig.savefig(  # save pdf
+    #     f"{cd}/FitModels/plots/C_contours_{filename}.pdf",
+    #     bbox_inches="tight",
+    #     transparent=True,
+    # )
 
 # todo: maybe use a corner plot to visualise this?
