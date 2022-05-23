@@ -79,7 +79,7 @@ def read_data(model_name):
 for filename in ["Data4"]:
     zs, mu, muerr = read_data(filename)
     # for speed, we are going to take only a subset of the available data
-    step = 20  # step size along zs array
+    step = 10  # step size along zs array
     zs_sliced = zs[0:-1:step]
     mu_sliced = mu[0:-1:step]
     muerr_sliced = muerr[0:-1:step]
@@ -90,7 +90,7 @@ for filename in ["Data4"]:
     oms = np.linspace(0.0, 1, n)
     orrs = np.linspace(0.0, 1, n)
     ols = np.linspace(0.0, 1.0, n)
-    w0s = np.linspace(-1.0, 0, n)
+    w0s = np.linspace(-2.0, 0, n)
     was = np.linspace(-1.5, 0.5, n)
 
     # Array to hold our chi2 values, set initially to super large values
@@ -132,12 +132,17 @@ for filename in ["Data4"]:
         ind_best, [n, n, n, n, n]
     )  # Converts the best fit index to the 2d version (i,j)
     print(f"Index of best fit, {ind_best=} corresponding to {chi2[ibest]=}")
-    print(f"Best fit values are (om,ol)=({oms[ibest[0]]:.3f},{ols[ibest[1]]:.3f})")
+    print(f"Best fit values are (om,ol,)=({oms[ibest[0]]:.3f},{ols[ibest[1]]:.3f})")
     print(
         f"Reduced chi^2 for the best fit is {chi2_reduced[ibest[0],ibest[1],ibest[2],ibest[3], ibest[4]]:0.2f}"
     )
 
-    figure = corner.corner
+    # samples = np.vstack([oms, orrs, w0s, was, orrs])
+
+    # figure = corner.corner(samples)
+    figure = corner.corner(chi2)
+    figure.savefig(f"{cd}/plots/{filename}.pdf")
+    #! i give up, it is not working properly
 
     # Plot contours of 1, 2, and 3 sigma
     # fig, ax = plt.subplots()
