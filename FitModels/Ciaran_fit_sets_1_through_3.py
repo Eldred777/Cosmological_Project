@@ -19,7 +19,7 @@ H0s = (
 
 # change the following two lines to change how fine the grid search is, and how many data points to take
 _STEP = 1  # step size along data
-_N = 100  # how many points to consider along the grid
+_N = 30  # how many points to consider along the grid
 
 
 print(f"Check that this path is correct! {project_dir=}")
@@ -84,7 +84,7 @@ def analyse_data(filename):
     # print(f"Starting analysis of {filename}.")
 
     # Set up the arrays for the models you want to test, e.g. a range of Omega_m and Omega_Lambda models:
-    oms = np.linspace(0.0, 0.6, _N)  # Array of matter densities
+    oms = np.linspace(0.0, 1.0, _N)  # Array of matter densities
     ols = np.linspace(0.0, 1.0, _N)  # Array of cosmological constant values
     chi2 = (
         np.ones((_N, _N)) * np.inf
@@ -123,7 +123,82 @@ def analyse_data(filename):
         indbest, [_N, _N]
     )  # Converts the best fit index to the 2d version (i,j)
 
-    chi2_shifted_transposed = np.transpose(chi2 - np.amin(chi2))
+    chi2_shifted = chi2 - np.amin(chi2)
+    chi2_shifted_transposed = np.transpose(chi2_shifted)
+
+    # Now we want to find error bars.
+    likelihood = np.exp(
+        -chi2_shifted / 2
+    )  # convert the chi^2 to a likelihood (np.amin(chi2) calculates the minimum of the chi^2 array)
+
+    ### find error bars
+    # distribution for omega_l
+    likelihood_l = np.sum(likelihood, 0)
+
+    #! THIS DOES NOT WORK
+    sd_lower_l_lik = np.quantile(likelihood_l, 0.5 - 0.341, method="nearest")
+    sd_upper_l_lik = np.quantile(likelihood_l, 0.5 + 0.341, method="nearest")
+
+    # the following requires that no two values are the same --- highly unlikely due to floating point shenanigans
+    sd_lower_l = 0
+    for i, L in enumerate(likelihood_l):
+        if L == sd_lower_l_lik:
+            sd_lower_l = ols[i]
+    sd_upper_l = 0
+    for i, L in enumerate(likelihood_l):
+        if L == sd_upper_l_lik:
+            sd_upper_l = ols[i]
+
+    # plot likelihood
+    fig, ax = plt.subplots()
+    ax.plot(ols, likelihood_l)
+    ax.set_xlabel("$\Omega_\Lambda$")
+    ax.set_ylabel("Likelihood")
+    ax.axvline(sd_lower_l)
+    ax.axvline(sd_upper_l)
+    fig.savefig(
+        f"{project_dir}/FitModels/plots/c_ol_likelihood.png",
+        bbox_inches="tight",
+    )
+    fig.savefig(
+        f"{project_dir}/FitModels/plots/c_ol_likelihood.pdf",
+        bbox_inches="tight",
+    )
+
+    plt.close(fig)
+
+    # distribution for omega_m
+    likelihood_m = np.sum(likelihood, 1)
+
+    sd_lower_m_lik = np.quantile(likelihood_m, 0.5 - 0.341, method="nearest")
+    sd_upper_m_lik = np.quantile(likelihood_m, 0.5 + 0.341, method="nearest")
+
+    sd_lower_m = 0
+    for i, L in enumerate(likelihood_m):
+        if L == sd_lower_m_lik:
+            sd_lower_m = oms[i]
+    sd_upper_m = 0
+    for i, L in enumerate(likelihood_m):
+        if L == sd_upper_m_lik:
+            sd_upper_m = oms[i]
+
+    # plot likelihood
+    fig, ax = plt.subplots()
+    ax.plot(oms, likelihood_m)
+    ax.set_xlabel("$\Omega_m$")
+    ax.set_ylabel("Likelihood")
+    ax.axvline(sd_lower_m)
+    ax.axvline(sd_upper_m)
+    fig.savefig(
+        f"{project_dir}/FitModels/plots/c_om_likelihood_{filename}.png",
+        bbox_inches="tight",
+    )
+    fig.savefig(
+        f"{project_dir}/FitModels/plots/c_om_likelihood_{filename}.pdf",
+        bbox_inches="tight",
+    )
+
+    plt.close(fig)
 
     ### plotting time
     # Plot contours of 1, 2, and 3 sigma
@@ -134,9 +209,15 @@ def analyse_data(filename):
         ols,
         chi2_shifted_transposed,
         cmap="winter",
-        **{"levels": [2.30, 6.18, 11.83]},  # corr. 1, 2, 3 sigma 
-        #? double check above 
+        **{"levels": [2.30, 6.18, 11.83]},  # corr. 1, 2, 3 sigma
+        # ? double check above
     )
+    # indicate standard deviations
+    ax.axvline(sd_lower_m)
+    ax.axvline(sd_upper_m)
+    ax.axhline(sd_lower_l)
+    ax.axhline(sd_upper_l)
+
     ax.plot(
         oms[ibest[0]],
         ols[ibest[1]],
@@ -163,29 +244,38 @@ def analyse_data(filename):
         bbox_inches="tight",
     )
 
+    # save all values to a file for later reference
     with open(
         f"{project_dir}/FitModels/plots/parameters_{filename}.txt", "w"
     ) as writer:
-        print(f"Best fit values are (om,ol)=({oms[ibest[0]]:.3f},{ols[ibest[1]]:.3f})")
-        print(
-            f"Reduced chi^2 for the best fit is {chi2_reduced[ibest[0],ibest[1]]:0.2f}"
-        )
         writer.write(
             f"{filename}:"
             + f"\n\t(om,ol)=({oms[ibest[0]]},{ols[ibest[1]]})"
             + f"\n\tReduced chi^2 = {chi2_reduced[ibest[0],ibest[1]]}"
-            + 2 * "\n"
+            + f"\n\t{sd_lower_l_lik=}"
+            + f"\n\t{sd_upper_l_lik=}"
+            + f"\n\t{sd_lower_m_lik=}"
+            + f"\n\t{sd_upper_m_lik=}"
+            + f"\n\t{sd_lower_l=}"
+            + f"\n\t{sd_upper_l=}"
+            + f"\n\t{sd_lower_m=}"
+            + f"\n\t{sd_upper_m=}"
         )
 
     plt.close(fig)
 
 
 def main():
+    # Analyses data 1-3 simultaneously
     procs = []
-    filenames = ["Data1", "Data2", "Data3"]
+    filenames = ["Data0", "Data1", "Data2", "Data3"]
 
     for filename in filenames:
-        procs.append(multi.Process(target=analyse_data, args=[filename]))
+        procs.append(
+            multi.Process(
+                target=analyse_data, args=[filename], name=f"Process-{filename}"
+            )
+        )
 
     proc: multi.Process
     for proc in procs:
