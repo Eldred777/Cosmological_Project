@@ -19,10 +19,7 @@ H0s = (
 
 # change the following two lines to change how fine the grid search is, and how many data points to take
 _STEP = 1  # step size along data
-_N = 30  # how many points to consider along the grid
-
-
-print(f"Check that this path is correct! {project_dir=}")
+_N = 100  # how many points to consider along the grid
 
 
 def ezinv(z, om=0.3, ol=0.7, w0=-1.0, wa=0.0, orr=0.0):
@@ -76,6 +73,10 @@ def read_data(model_name):
 
 
 def analyse_data(filename):
+    # make sure plotting directory is made
+    if not os.path.exists(f"{project_dir}/FitModels/plots/{filename}"):
+        os.mkdir(f"{project_dir}/FitModels/plots/{filename}")
+
     zs, mu, muerr = read_data(filename)
     # for speed, we are going to take only a subset of the available data
     zs_sliced = zs[0:-1:_STEP]
@@ -132,36 +133,42 @@ def analyse_data(filename):
     )  # convert the chi^2 to a likelihood (np.amin(chi2) calculates the minimum of the chi^2 array)
 
     ### find error bars
+    # quantiles
+    lower_sd_bound = 0.5 - 0.314
+    upper_sd_bound = 0.5 + 0.314
+
     # distribution for omega_l
     likelihood_l = np.sum(likelihood, 0)
 
-    #! THIS DOES NOT WORK
-    sd_lower_l_lik = np.quantile(likelihood_l, 0.5 - 0.341, method="nearest")
-    sd_upper_l_lik = np.quantile(likelihood_l, 0.5 + 0.341, method="nearest")
+    lik_l_cumsum_norm = np.cumsum(likelihood_l) / sum(
+        likelihood_l
+    )  # should look like a pmf
 
-    # the following requires that no two values are the same --- highly unlikely due to floating point shenanigans
+    # initialise
     sd_lower_l = 0
-    for i, L in enumerate(likelihood_l):
-        if L == sd_lower_l_lik:
-            sd_lower_l = ols[i]
     sd_upper_l = 0
-    for i, L in enumerate(likelihood_l):
-        if L == sd_upper_l_lik:
+    for i, x in enumerate(lik_l_cumsum_norm):
+        if x > lower_sd_bound and not sd_lower_l:
+            # if sd_lower_l not yet found
+            sd_lower_l = ols[i]
+
+        if x > upper_sd_bound:
             sd_upper_l = ols[i]
+            break  # end loop
 
     # plot likelihood
     fig, ax = plt.subplots()
     ax.plot(ols, likelihood_l)
     ax.set_xlabel("$\Omega_\Lambda$")
     ax.set_ylabel("Likelihood")
-    ax.axvline(sd_lower_l)
-    ax.axvline(sd_upper_l)
+    ax.axvline(sd_lower_l, color=(0, 0, 0, 0.5))
+    ax.axvline(sd_upper_l, color=(0, 0, 0, 0.5))
     fig.savefig(
-        f"{project_dir}/FitModels/plots/c_ol_likelihood.png",
+        f"{project_dir}/FitModels/plots/{filename}/ol_likelihood.png",
         bbox_inches="tight",
     )
     fig.savefig(
-        f"{project_dir}/FitModels/plots/c_ol_likelihood.pdf",
+        f"{project_dir}/FitModels/plots/{filename}/ol_likelihood.pdf",
         bbox_inches="tight",
     )
 
@@ -169,32 +176,36 @@ def analyse_data(filename):
 
     # distribution for omega_m
     likelihood_m = np.sum(likelihood, 1)
+    lik_m_cumsum_norm = np.cumsum(likelihood_m) / sum(
+        likelihood_m
+    )  # should look like a pmf
 
-    sd_lower_m_lik = np.quantile(likelihood_m, 0.5 - 0.341, method="nearest")
-    sd_upper_m_lik = np.quantile(likelihood_m, 0.5 + 0.341, method="nearest")
-
+    # initialise
     sd_lower_m = 0
-    for i, L in enumerate(likelihood_m):
-        if L == sd_lower_m_lik:
-            sd_lower_m = oms[i]
     sd_upper_m = 0
-    for i, L in enumerate(likelihood_m):
-        if L == sd_upper_m_lik:
+    acc = 0  # accumulator
+    for i, x in enumerate(lik_m_cumsum_norm):
+        if x > lower_sd_bound and not sd_lower_m:
+            # if sd_lower_l not yet found
+            sd_lower_m = oms[i]
+
+        if x > upper_sd_bound:
             sd_upper_m = oms[i]
+            break  # end loop
 
     # plot likelihood
     fig, ax = plt.subplots()
     ax.plot(oms, likelihood_m)
     ax.set_xlabel("$\Omega_m$")
     ax.set_ylabel("Likelihood")
-    ax.axvline(sd_lower_m)
-    ax.axvline(sd_upper_m)
+    ax.axvline(sd_lower_m, color=(0, 0, 0, 0.5))
+    ax.axvline(sd_upper_m, color=(0, 0, 0, 0.5))
     fig.savefig(
-        f"{project_dir}/FitModels/plots/c_om_likelihood_{filename}.png",
+        f"{project_dir}/FitModels/plots/{filename}/om_likelihood.png",
         bbox_inches="tight",
     )
     fig.savefig(
-        f"{project_dir}/FitModels/plots/c_om_likelihood_{filename}.pdf",
+        f"{project_dir}/FitModels/plots/{filename}/om_likelihood.pdf",
         bbox_inches="tight",
     )
 
@@ -212,11 +223,6 @@ def analyse_data(filename):
         **{"levels": [2.30, 6.18, 11.83]},  # corr. 1, 2, 3 sigma
         # ? double check above
     )
-    # indicate standard deviations
-    ax.axvline(sd_lower_m)
-    ax.axvline(sd_upper_m)
-    ax.axhline(sd_lower_l)
-    ax.axhline(sd_upper_l)
 
     ax.plot(
         oms[ibest[0]],
@@ -235,27 +241,45 @@ def analyse_data(filename):
         label="Step size indicator",
     )
     ax.legend(frameon=False)
+
+    # save 2 versions, one without indicators for standard deviation, and one with
+    # without std dev lines
     fig.savefig(
-        f"{project_dir}/FitModels/plots/ciaran_contours_{filename}.png",
+        f"{project_dir}/FitModels/plots/{filename}/contours_sans_sd.png",
         bbox_inches="tight",
     )
     fig.savefig(
-        f"{project_dir}/FitModels/plots/ciaran_contours_{filename}.pdf",
+        f"{project_dir}/FitModels/plots/{filename}/contours_sans_sd.pdf",
         bbox_inches="tight",
     )
 
+    # indicate standard deviations
+    # color kwarg gives opacity
+    ax.axvline(sd_lower_m, color=(0, 0, 0, 0.5))
+    ax.axvline(sd_upper_m, color=(0, 0, 0, 0.5))
+    ax.axhline(sd_lower_l, color=(0, 0, 0, 0.5))
+    ax.axhline(sd_upper_l, color=(0, 0, 0, 0.5))
+
+    # with std dev lines
+    fig.savefig(
+        f"{project_dir}/FitModels/plots/{filename}/contours.png",
+        bbox_inches="tight",
+    )
+    fig.savefig(
+        f"{project_dir}/FitModels/plots/{filename}/contours.pdf",
+        bbox_inches="tight",
+    )
+
+    plt.close(fig)
+
     # save all values to a file for later reference
     with open(
-        f"{project_dir}/FitModels/plots/parameters_{filename}.txt", "w"
+        f"{project_dir}/FitModels/plots/{filename}/parameters.txt", "w"
     ) as writer:
         writer.write(
             f"{filename}:"
             + f"\n\t(om,ol)=({oms[ibest[0]]},{ols[ibest[1]]})"
             + f"\n\tReduced chi^2 = {chi2_reduced[ibest[0],ibest[1]]}"
-            + f"\n\t{sd_lower_l_lik=}"
-            + f"\n\t{sd_upper_l_lik=}"
-            + f"\n\t{sd_lower_m_lik=}"
-            + f"\n\t{sd_upper_m_lik=}"
             + f"\n\t{sd_lower_l=}"
             + f"\n\t{sd_upper_l=}"
             + f"\n\t{sd_lower_m=}"
@@ -263,6 +287,10 @@ def analyse_data(filename):
         )
 
     plt.close(fig)
+
+
+def test_main():
+    analyse_data("Data1")
 
 
 def main():
@@ -283,8 +311,9 @@ def main():
         print(f"Starting process {proc}")
 
     for proc in procs:
-        proc.join()
+        proc.join()  # wait until processes are done
 
 
 if __name__ == "__main__":
+    # test_main()
     main()
