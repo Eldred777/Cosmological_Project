@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from scipy import integrate
 import os
 import multiprocessing as multi
+import matplotlib as mpl
 
 project_dir = os.path.abspath("~/../")
 
@@ -183,7 +184,6 @@ def analyse_data(filename):
     # initialise
     sd_lower_m = 0
     sd_upper_m = 0
-    acc = 0  # accumulator
     for i, x in enumerate(lik_m_cumsum_norm):
         if x > lower_sd_bound and not sd_lower_m:
             # if sd_lower_l not yet found
@@ -272,6 +272,67 @@ def analyse_data(filename):
 
     plt.close(fig)
 
+    # let's try our hands at making a corner plot!
+    fig = plt.figure()
+    gs = fig.add_gridspec(
+        2, 2, hspace=0.05, wspace=0.05, 
+        width_ratios=[1, 0.5], height_ratios=[0.5, 1]
+    )
+    (om_ax, redundant_ax), (main_ax, ol_ax) = gs.subplots(sharex="col", sharey="row")
+
+    main_ax.contour(
+        oms,
+        ols,
+        chi2_shifted_transposed,
+        cmap="winter",
+        **{"levels": [2.30, 6.18, 11.83]},  # corr. 1, 2, 3 sigma
+    )
+    main_ax.plot(  # indicate the parameters of best fit
+        oms[ibest[0]],
+        ols[ibest[1]],
+        "x",
+        color="black",
+        label=f"(om,ol)=({oms[ibest[0]]:.3f},{ols[ibest[1]]:.3f})",
+    )
+    main_ax.set_xlabel("$\Omega_m$", fontsize=12)
+    main_ax.set_ylabel("$\Omega_\Lambda$", fontsize=12)
+    main_ax.plot(
+        [oms[0], oms[1]],
+        [ols[0], ols[1]],
+        "-",
+        color="black",
+        label="Step size indicator",
+    )
+    main_ax.legend(frameon=False)
+    main_ax.axvline(sd_lower_m, color=(0, 0, 0, 0.5))
+    main_ax.axvline(sd_upper_m, color=(0, 0, 0, 0.5))
+    main_ax.axhline(sd_lower_l, color=(0, 0, 0, 0.5))
+    main_ax.axhline(sd_upper_l, color=(0, 0, 0, 0.5))
+    main_ax.grid()
+
+    ol_ax.plot(likelihood_l, ols)
+    ol_ax.set_xlabel("Likelihood")
+    ol_ax.axhline(sd_lower_l, color=(0, 0, 0, 0.5))
+    ol_ax.axhline(sd_upper_l, color=(0, 0, 0, 0.5))
+    ol_ax.grid()
+
+    om_ax.plot(oms, likelihood_m)
+    om_ax.set_ylabel("Likelihood")
+    om_ax.axvline(sd_lower_m, color=(0, 0, 0, 0.5))
+    om_ax.axvline(sd_upper_m, color=(0, 0, 0, 0.5))
+    om_ax.grid()
+
+    redundant_ax.axis("off")
+
+    fig.savefig(
+        f"{project_dir}/FitModels/plots/{filename}/corner.png",
+        bbox_inches="tight",
+    )
+    fig.savefig(
+        f"{project_dir}/FitModels/plots/{filename}/corner.pdf",
+        bbox_inches="tight",
+    )
+
     # save all values to a file for later reference
     with open(
         f"{project_dir}/FitModels/plots/{filename}/parameters.txt", "w"
@@ -290,6 +351,9 @@ def analyse_data(filename):
 
 
 def test_main():
+    # when testing, reduce grid search to 20 increments
+    global _N
+    _N = 20
     analyse_data("Data1")
 
 
