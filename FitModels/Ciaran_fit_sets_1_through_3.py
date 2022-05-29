@@ -23,6 +23,22 @@ _STEP = 1  # step size along data
 _N = 100  # how many points to consider along the grid
 
 
+def dist_mod(zs, om=0.3, ol=0.7, w0=-1.0, wa=0.0, orr=0.0):
+    """Calculate the distance modulus, correcting for curvature"""
+    ok = 1.0 - om - ol
+    xx = np.array(
+        [integrate.quad(ezinv, 0, z, args=(om, ol, w0, wa, orr))[0] for z in zs]
+    )
+    D = Sk(xx, ok)
+    lum_dist = D * (1 + zs)
+    dist_mod = 5 * np.log10(lum_dist)  # Distance modulus
+    # Add an arbitrary constant that's approximately the log of c on Hubble constant minus absolute magnitude of -19.5
+    dist_mod = (
+        dist_mod + np.log(c / H0kmsmpc) - (-19.5)
+    )  # You can actually skip this step and it won't make a difference to our fitting
+    return dist_mod
+
+
 def ezinv(z, om=0.3, ol=0.7, w0=-1.0, wa=0.0, orr=0.0):
     # integrand, i.e. $1/E(z)$,
     ok = 1.0 - om - ol - orr
@@ -355,6 +371,8 @@ def analyse_data(filename):
         facecolor="w",
     )
 
+    plt.close(fig)
+
     # save all values to a file for later reference
     with open(
         f"{project_dir}/FitModels/plots/{filename}/parameters.txt", "w"
@@ -368,6 +386,96 @@ def analyse_data(filename):
             + f"\n\t{sd_lower_m=}"
             + f"\n\t{sd_upper_m=}"
         )
+
+    # plot against model
+    mu_model = dist_mod(zs, om=oms[ibest[0]], ol=ols[ibest[1]])
+    mu_om10_ox00 = dist_mod(zs, om=1.0, ol=0.0)
+    mu_om00_ox00 = dist_mod(zs, om=0.0, ol=0.0)
+
+    fig, ax = plt.subplots()
+    ax.errorbar(
+        zs,
+        mu,
+        yerr=muerr,
+        fmt=".",
+        elinewidth=0.7,
+        markersize=4,
+        alpha=0.5,
+        label="Data",
+    )
+    ax.plot(
+        zs,
+        mu_model,
+        "-",
+        color="red",
+        label=f"($\Omega_m,\Omega_\Lambda$)=({oms[ibest[0]]:.3f},{ols[ibest[1]]:.3f})",
+    )
+    ax.plot(zs, mu_om10_ox00, "-.", color="blue", label="(1.0, 0.0)")
+    ax.set_xlim(0, 1.0)
+    ax.set_xlabel("Redshift")
+    ax.set_ylabel("Magnitude")
+    ax.legend(frameon=False)
+    ax.grid()
+
+    fig.savefig(
+        f"{project_dir}/FitModels/plots/{filename}/model.png",
+        bbox_inches="tight",
+        transparent=False,
+        facecolor="w",
+    )
+    fig.savefig(
+        f"{project_dir}/FitModels/plots/{filename}/model.pdf",
+        bbox_inches="tight",
+        transparent=False,
+        facecolor="w",
+    )
+
+    plt.close(fig)
+
+    fig, ax = plt.subplots()
+    ax.errorbar(
+        zs,
+        mu - mu_om00_ox00,
+        yerr=muerr,
+        fmt=".",
+        elinewidth=0.7,
+        markersize=4,
+        alpha=0.5,
+        label="Data",
+    )
+    ax.plot(
+        zs,
+        mu_om10_ox00 - mu_om00_ox00,
+        "-.",
+        color="blue",
+        label=f"($\Omega_m,\Omega_\Lambda$)=(1.0,0.0)",
+    )
+    ax.plot(
+        zs,
+        mu_model - mu_om00_ox00,
+        "-",
+        color="red",
+        label=f"($\Omega_m,\Omega_\Lambda$)=({oms[ibest[0]]:.3f},{ols[ibest[1]]:.3f})",
+    )
+    # ax.set_xlim(0, 1.0)
+    ax.axhline(y=0.0, ls=":", color="black")
+    ax.set_xlabel("Redshift")
+    ax.set_ylabel("Magnitude")
+    ax.legend(frameon=False)
+    ax.grid()
+
+    fig.savefig(
+        f"{project_dir}/FitModels/plots/{filename}/model_comparison.png",
+        bbox_inches="tight",
+        transparent=False,
+        facecolor="w",
+    )
+    fig.savefig(
+        f"{project_dir}/FitModels/plots/{filename}/model_comparison.pdf",
+        bbox_inches="tight",
+        transparent=False,
+        facecolor="w",
+    )
 
     plt.close(fig)
 
