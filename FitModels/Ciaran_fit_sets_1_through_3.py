@@ -318,8 +318,8 @@ def analyse_data(filename):
         label="Step size indicator",
     )
     main_ax.legend(frameon=False)
-    ol_ax.axhline(ols[ibest[1]], color="red", linestyle=":")
-    om_ax.axvline(oms[ibest[0]], color="red", linestyle=":")
+    main_ax.axhline(ols[ibest[1]], color="red", linestyle=":")
+    main_ax.axvline(oms[ibest[0]], color="red", linestyle=":")
     main_ax.axvline(sd_lower_m, color=(0, 0, 0, 0.5), linestyle=":")
     main_ax.axvline(sd_upper_m, color=(0, 0, 0, 0.5), linestyle=":")
     main_ax.axhline(sd_lower_l, color=(0, 0, 0, 0.5), linestyle=":")
