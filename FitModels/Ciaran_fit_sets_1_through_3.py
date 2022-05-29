@@ -162,15 +162,20 @@ def analyse_data(filename):
     ax.plot(ols, likelihood_l)
     ax.set_xlabel("$\Omega_\Lambda$")
     ax.set_ylabel("Likelihood")
-    ax.axvline(sd_lower_l, color=(0, 0, 0, 0.5))
-    ax.axvline(sd_upper_l, color=(0, 0, 0, 0.5))
+    ax.axvline(ols[ibest[1]], color="red", linestyle=":")
+    ax.axvline(sd_lower_l, color=(0, 0, 0, 0.5), linestyle=":")
+    ax.axvline(sd_upper_l, color=(0, 0, 0, 0.5), linestyle=":")
     fig.savefig(
         f"{project_dir}/FitModels/plots/{filename}/ol_likelihood.png",
         bbox_inches="tight",
+        transparent=False,
+        facecolor="w",
     )
     fig.savefig(
         f"{project_dir}/FitModels/plots/{filename}/ol_likelihood.pdf",
         bbox_inches="tight",
+        transparent=False,
+        facecolor="w",
     )
 
     plt.close(fig)
@@ -198,15 +203,20 @@ def analyse_data(filename):
     ax.plot(oms, likelihood_m)
     ax.set_xlabel("$\Omega_m$")
     ax.set_ylabel("Likelihood")
-    ax.axvline(sd_lower_m, color=(0, 0, 0, 0.5))
-    ax.axvline(sd_upper_m, color=(0, 0, 0, 0.5))
+    ax.axvline(oms[ibest[0]], style="r:")
+    ax.axvline(sd_lower_m, color=(0, 0, 0, 0.5), linestyle=":")
+    ax.axvline(sd_upper_m, color=(0, 0, 0, 0.5), linestyle=":")
     fig.savefig(
         f"{project_dir}/FitModels/plots/{filename}/om_likelihood.png",
         bbox_inches="tight",
+        transparent=False,
+        facecolor="w",
     )
     fig.savefig(
         f"{project_dir}/FitModels/plots/{filename}/om_likelihood.pdf",
         bbox_inches="tight",
+        transparent=False,
+        facecolor="w",
     )
 
     plt.close(fig)
@@ -223,13 +233,12 @@ def analyse_data(filename):
         **{"levels": [2.30, 6.18, 11.83]},  # corr. 1, 2, 3 sigma
         # ? double check above
     )
-
     ax.plot(
         oms[ibest[0]],
         ols[ibest[1]],
         "x",
         color="black",
-        label=f"(om,ol)=({oms[ibest[0]]:.3f},{ols[ibest[1]]:.3f})",
+        label=f"($\Omega_m,\Omega_\Lambda$)=({oms[ibest[0]]:.3f},{ols[ibest[1]]:.3f})",
     )
     ax.set_xlabel("$\Omega_m$", fontsize=12)
     ax.set_ylabel("$\Omega_\Lambda$", fontsize=12)
@@ -255,19 +264,25 @@ def analyse_data(filename):
 
     # indicate standard deviations
     # color kwarg gives opacity
-    ax.axvline(sd_lower_m, color=(0, 0, 0, 0.5))
-    ax.axvline(sd_upper_m, color=(0, 0, 0, 0.5))
-    ax.axhline(sd_lower_l, color=(0, 0, 0, 0.5))
-    ax.axhline(sd_upper_l, color=(0, 0, 0, 0.5))
+    ax.axhline(ols[ibest[1]], color="red", linestyle=":")
+    ax.axvline(oms[ibest[0]], color="red", linestyle=":")
+    ax.axvline(sd_lower_m, color=(0, 0, 0, 0.5), linestyle=":")
+    ax.axvline(sd_upper_m, color=(0, 0, 0, 0.5), linestyle=":")
+    ax.axhline(sd_lower_l, color=(0, 0, 0, 0.5), linestyle=":")
+    ax.axhline(sd_upper_l, color=(0, 0, 0, 0.5), linestyle=":")
 
     # with std dev lines
     fig.savefig(
         f"{project_dir}/FitModels/plots/{filename}/contours.png",
         bbox_inches="tight",
+        transparent=False,
+        facecolor="w",
     )
     fig.savefig(
         f"{project_dir}/FitModels/plots/{filename}/contours.pdf",
         bbox_inches="tight",
+        transparent=False,
+        facecolor="w",
     )
 
     plt.close(fig)
@@ -275,8 +290,7 @@ def analyse_data(filename):
     # let's try our hands at making a corner plot!
     fig = plt.figure()
     gs = fig.add_gridspec(
-        2, 2, hspace=0.05, wspace=0.05, 
-        width_ratios=[1, 0.5], height_ratios=[0.5, 1]
+        2, 2, hspace=0.05, wspace=0.05, width_ratios=[1, 0.5], height_ratios=[0.5, 1]
     )
     (om_ax, redundant_ax), (main_ax, ol_ax) = gs.subplots(sharex="col", sharey="row")
 
@@ -292,7 +306,7 @@ def analyse_data(filename):
         ols[ibest[1]],
         "x",
         color="black",
-        label=f"(om,ol)=({oms[ibest[0]]:.3f},{ols[ibest[1]]:.3f})",
+        label=f"($\Omega_m,\Omega_\Lambda$)=({oms[ibest[0]]:.3f},{ols[ibest[1]]:.3f})",
     )
     main_ax.set_xlabel("$\Omega_m$", fontsize=12)
     main_ax.set_ylabel("$\Omega_\Lambda$", fontsize=12)
@@ -304,22 +318,26 @@ def analyse_data(filename):
         label="Step size indicator",
     )
     main_ax.legend(frameon=False)
-    main_ax.axvline(sd_lower_m, color=(0, 0, 0, 0.5))
-    main_ax.axvline(sd_upper_m, color=(0, 0, 0, 0.5))
-    main_ax.axhline(sd_lower_l, color=(0, 0, 0, 0.5))
-    main_ax.axhline(sd_upper_l, color=(0, 0, 0, 0.5))
+    ol_ax.axhline(ols[ibest[1]], color="red", linestyle=":")
+    om_ax.axvline(oms[ibest[0]], color="red", linestyle=":")
+    main_ax.axvline(sd_lower_m, color=(0, 0, 0, 0.5), linestyle=":")
+    main_ax.axvline(sd_upper_m, color=(0, 0, 0, 0.5), linestyle=":")
+    main_ax.axhline(sd_lower_l, color=(0, 0, 0, 0.5), linestyle=":")
+    main_ax.axhline(sd_upper_l, color=(0, 0, 0, 0.5), linestyle=":")
     main_ax.grid()
 
     ol_ax.plot(likelihood_l, ols)
     ol_ax.set_xlabel("Likelihood")
-    ol_ax.axhline(sd_lower_l, color=(0, 0, 0, 0.5))
-    ol_ax.axhline(sd_upper_l, color=(0, 0, 0, 0.5))
+    ol_ax.axhline(ols[ibest[1]], color="red", linestyle=":")
+    ol_ax.axhline(sd_lower_l, color=(0, 0, 0, 0.5), linestyle=":")
+    ol_ax.axhline(sd_upper_l, color=(0, 0, 0, 0.5), linestyle=":")
     ol_ax.grid()
 
     om_ax.plot(oms, likelihood_m)
     om_ax.set_ylabel("Likelihood")
-    om_ax.axvline(sd_lower_m, color=(0, 0, 0, 0.5))
-    om_ax.axvline(sd_upper_m, color=(0, 0, 0, 0.5))
+    om_ax.axvline(oms[ibest[0]], style="r:")
+    om_ax.axvline(sd_lower_m, color=(0, 0, 0, 0.5), linestyle=":")
+    om_ax.axvline(sd_upper_m, color=(0, 0, 0, 0.5), linestyle=":")
     om_ax.grid()
 
     redundant_ax.axis("off")
@@ -327,10 +345,14 @@ def analyse_data(filename):
     fig.savefig(
         f"{project_dir}/FitModels/plots/{filename}/corner.png",
         bbox_inches="tight",
+        transparent=False,
+        facecolor="w",
     )
     fig.savefig(
         f"{project_dir}/FitModels/plots/{filename}/corner.pdf",
         bbox_inches="tight",
+        transparent=False,
+        facecolor="w",
     )
 
     # save all values to a file for later reference
