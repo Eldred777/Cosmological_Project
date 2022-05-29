@@ -203,7 +203,7 @@ def analyse_data(filename):
     ax.plot(oms, likelihood_m)
     ax.set_xlabel("$\Omega_m$")
     ax.set_ylabel("Likelihood")
-    ax.axvline(oms[ibest[0]], style="r:")
+    ax.axvline(oms[ibest[0]], color="red", linestyle=":")
     ax.axvline(sd_lower_m, color=(0, 0, 0, 0.5), linestyle=":")
     ax.axvline(sd_upper_m, color=(0, 0, 0, 0.5), linestyle=":")
     fig.savefig(
@@ -335,7 +335,7 @@ def analyse_data(filename):
 
     om_ax.plot(oms, likelihood_m)
     om_ax.set_ylabel("Likelihood")
-    om_ax.axvline(oms[ibest[0]], style="r:")
+    om_ax.axvline(oms[ibest[0]], color="red", linestyle=":")
     om_ax.axvline(sd_lower_m, color=(0, 0, 0, 0.5), linestyle=":")
     om_ax.axvline(sd_upper_m, color=(0, 0, 0, 0.5), linestyle=":")
     om_ax.grid()
