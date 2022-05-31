@@ -7,9 +7,13 @@ import matplotlib.pyplot as plt
 from scipy import integrate
 import os
 import multiprocessing as multi
-import matplotlib as mpl
 
-project_dir = os.path.abspath("~/../")
+# CONSTANTS DEF
+PROJECT_DIR = os.path.abspath("")
+print(
+    "Check that this directory is the parent folder for the project:\n\t"
+    + f"{PROJECT_DIR}\n"
+)
 
 # set some constants
 c = 299792.458  # km/s (speed of light)
@@ -21,6 +25,24 @@ H0s = (
 # change the following two lines to change how fine the grid search is, and how many data points to take
 _STEP = 1  # step size along data
 _N = 100  # how many points to consider along the grid
+
+
+def saveFigure(fig, dirname, filename):
+    # handy function
+    dir = f"{PROJECT_DIR}/FitModels/plots/{dirname}"
+    if not os.path.exists(dir):
+        os.mkdir(dir)
+
+    fig.savefig(
+        f"{dir}/{filename}.png",
+        transparent=False,
+        facecolor="w",
+    )
+    fig.savefig(
+        f"{dir}/{filename}.pdf",
+        transparent=False,
+        facecolor="w",
+    )
 
 
 def dist_mod(zs, om=0.3, ol=0.7, w0=-1.0, wa=0.0, orr=0.0):
@@ -82,7 +104,7 @@ def dist_mod(zs, om=0.3, ol=0.7, w0=-1.0, wa=0.0, orr=0.0):
 
 # Add a new function that reads in the data (data files should be in a directory called data)
 def read_data(model_name):
-    d = np.genfromtxt(f"{project_dir}/data/{model_name}.txt", delimiter=",")
+    d = np.genfromtxt(f"{PROJECT_DIR}/data/{model_name}.txt", delimiter=",")
     zs = d[:, 0]
     mu = d[:, 1]
     muerr = d[:, 2]
@@ -91,8 +113,8 @@ def read_data(model_name):
 
 def analyse_data(filename):
     # make sure plotting directory is made
-    if not os.path.exists(f"{project_dir}/FitModels/plots/{filename}"):
-        os.mkdir(f"{project_dir}/FitModels/plots/{filename}")
+    if not os.path.exists(f"{PROJECT_DIR}/FitModels/plots/{filename}"):
+        os.mkdir(f"{PROJECT_DIR}/FitModels/plots/{filename}")
 
     zs, mu, muerr = read_data(filename)
     # for speed, we are going to take only a subset of the available data
@@ -181,18 +203,7 @@ def analyse_data(filename):
     ax.axvline(ols[ibest[1]], color="red", linestyle=":")
     ax.axvline(sd_lower_l, color=(0, 0, 0, 0.5), linestyle=":")
     ax.axvline(sd_upper_l, color=(0, 0, 0, 0.5), linestyle=":")
-    fig.savefig(
-        f"{project_dir}/FitModels/plots/{filename}/ol_likelihood.png",
-        bbox_inches="tight",
-        transparent=False,
-        facecolor="w",
-    )
-    fig.savefig(
-        f"{project_dir}/FitModels/plots/{filename}/ol_likelihood.pdf",
-        bbox_inches="tight",
-        transparent=False,
-        facecolor="w",
-    )
+    saveFigure(fig, filename, "ol_likelihood")
 
     plt.close(fig)
 
@@ -222,18 +233,7 @@ def analyse_data(filename):
     ax.axvline(oms[ibest[0]], color="red", linestyle=":")
     ax.axvline(sd_lower_m, color=(0, 0, 0, 0.5), linestyle=":")
     ax.axvline(sd_upper_m, color=(0, 0, 0, 0.5), linestyle=":")
-    fig.savefig(
-        f"{project_dir}/FitModels/plots/{filename}/om_likelihood.png",
-        bbox_inches="tight",
-        transparent=False,
-        facecolor="w",
-    )
-    fig.savefig(
-        f"{project_dir}/FitModels/plots/{filename}/om_likelihood.pdf",
-        bbox_inches="tight",
-        transparent=False,
-        facecolor="w",
-    )
+    saveFigure(fig, filename, "om_likelihood")
 
     plt.close(fig)
 
@@ -254,7 +254,7 @@ def analyse_data(filename):
         ols[ibest[1]],
         "x",
         color="black",
-        label=f"($\Omega_m,\Omega_\Lambda$)=({oms[ibest[0]]:.3f},{ols[ibest[1]]:.3f})",
+        label=f"($\Omega_m,\Omega_\Lambda$)=({oms[ibest[0]]:.2f},{ols[ibest[1]]:.2f})",
     )
     ax.set_xlabel("$\Omega_m$", fontsize=12)
     ax.set_ylabel("$\Omega_\Lambda$", fontsize=12)
@@ -269,14 +269,7 @@ def analyse_data(filename):
 
     # save 2 versions, one without indicators for standard deviation, and one with
     # without std dev lines
-    fig.savefig(
-        f"{project_dir}/FitModels/plots/{filename}/contours_sans_sd.png",
-        bbox_inches="tight",
-    )
-    fig.savefig(
-        f"{project_dir}/FitModels/plots/{filename}/contours_sans_sd.pdf",
-        bbox_inches="tight",
-    )
+    saveFigure(fig, filename, "contours_sans_sd")
 
     # indicate standard deviations
     # color kwarg gives opacity
@@ -288,18 +281,7 @@ def analyse_data(filename):
     ax.axhline(sd_upper_l, color=(0, 0, 0, 0.5), linestyle=":")
 
     # with std dev lines
-    fig.savefig(
-        f"{project_dir}/FitModels/plots/{filename}/contours.png",
-        bbox_inches="tight",
-        transparent=False,
-        facecolor="w",
-    )
-    fig.savefig(
-        f"{project_dir}/FitModels/plots/{filename}/contours.pdf",
-        bbox_inches="tight",
-        transparent=False,
-        facecolor="w",
-    )
+    saveFigure(fig, filename, "contours")
 
     plt.close(fig)
 
@@ -322,7 +304,7 @@ def analyse_data(filename):
         ols[ibest[1]],
         "x",
         color="black",
-        label=f"($\Omega_m,\Omega_\Lambda$)=({oms[ibest[0]]:.3f},{ols[ibest[1]]:.3f})",
+        label=f"($\Omega_m,\Omega_\Lambda$)=({oms[ibest[0]]:.2f},{ols[ibest[1]]:.2f})",
     )
     main_ax.set_xlabel("$\Omega_m$", fontsize=12)
     main_ax.set_ylabel("$\Omega_\Lambda$", fontsize=12)
@@ -355,44 +337,26 @@ def analyse_data(filename):
     om_ax.axvline(sd_lower_m, color=(0, 0, 0, 0.5), linestyle=":")
     om_ax.axvline(sd_upper_m, color=(0, 0, 0, 0.5), linestyle=":")
     om_ax.grid()
-
     redundant_ax.axis("off")
-
-    fig.savefig(
-        f"{project_dir}/FitModels/plots/{filename}/corner.png",
-        bbox_inches="tight",
-        transparent=False,
-        facecolor="w",
-    )
-    fig.savefig(
-        f"{project_dir}/FitModels/plots/{filename}/corner.pdf",
-        bbox_inches="tight",
-        transparent=False,
-        facecolor="w",
-    )
-
+    saveFigure(fig, filename, "corner")
     plt.close(fig)
 
-    # save all values to a file for later reference
-    with open(
-        f"{project_dir}/FitModels/plots/{filename}/parameters.txt", "w"
-    ) as writer:
-        writer.write(
-            f"{filename}:"
-            + f"\n\t(om,ol)=({oms[ibest[0]]},{ols[ibest[1]]})"
-            + f"\n\tReduced chi^2 = {chi2_reduced[ibest[0],ibest[1]]}"
-            + f"\n\t{sd_lower_l=}"
-            + f"\n\t{sd_upper_l=}"
-            + f"\n\t{sd_lower_m=}"
-            + f"\n\t{sd_upper_m=}"
-        )
-
     # plot against model
+    # CONSTANTS DEF
+    STD_ALPHA = 0.5  # alpha for std dev lines
+    STD_COL = "red"  # alpha for std dev lines
+
     mu_model = dist_mod(zs, om=oms[ibest[0]], ol=ols[ibest[1]])
+    mu_model_ll = dist_mod(zs, om=sd_lower_m, ol=sd_lower_l)
+    mu_model_ul = dist_mod(zs, om=sd_upper_m, ol=sd_lower_l)
+    mu_model_uu = dist_mod(zs, om=sd_upper_m, ol=sd_upper_l)
+    mu_model_lu = dist_mod(zs, om=sd_lower_m, ol=sd_upper_l)
+
     mu_om10_ox00 = dist_mod(zs, om=1.0, ol=0.0)
     mu_om00_ox00 = dist_mod(zs, om=0.0, ol=0.0)
 
     fig, ax = plt.subplots()
+
     ax.errorbar(
         zs,
         mu,
@@ -408,8 +372,12 @@ def analyse_data(filename):
         mu_model,
         "-",
         color="red",
-        label=f"($\Omega_m,\Omega_\Lambda$)=({oms[ibest[0]]:.3f},{ols[ibest[1]]:.3f})",
+        label=f"($\Omega_m,\Omega_\Lambda$)=({oms[ibest[0]]:.2f},{ols[ibest[1]]:.2f})",
     )
+    ax.plot(zs, mu_model_ll, "--", color=STD_COL, alpha=STD_ALPHA)
+    ax.plot(zs, mu_model_lu, "--", color=STD_COL, alpha=STD_ALPHA)
+    ax.plot(zs, mu_model_uu, "--", color=STD_COL, alpha=STD_ALPHA)
+    ax.plot(zs, mu_model_ul, "--", color=STD_COL, alpha=STD_ALPHA)
     ax.plot(zs, mu_om10_ox00, "-.", color="blue", label="(1.0, 0.0)")
     ax.set_xlim(0, 1.0)
     ax.set_xlabel("Redshift")
@@ -417,18 +385,7 @@ def analyse_data(filename):
     ax.legend(frameon=False)
     ax.grid()
 
-    fig.savefig(
-        f"{project_dir}/FitModels/plots/{filename}/model.png",
-        bbox_inches="tight",
-        transparent=False,
-        facecolor="w",
-    )
-    fig.savefig(
-        f"{project_dir}/FitModels/plots/{filename}/model.pdf",
-        bbox_inches="tight",
-        transparent=False,
-        facecolor="w",
-    )
+    saveFigure(fig, filename, "model")
 
     plt.close(fig)
 
@@ -455,29 +412,36 @@ def analyse_data(filename):
         mu_model - mu_om00_ox00,
         "-",
         color="red",
-        label=f"($\Omega_m,\Omega_\Lambda$)=({oms[ibest[0]]:.3f},{ols[ibest[1]]:.3f})",
+        label=f"($\Omega_m,\Omega_\Lambda$)=({oms[ibest[0]]:.2f},{ols[ibest[1]]:.2f})",
     )
+    ax.plot(zs, mu_model_ll - mu_om00_ox00, "--", color=STD_COL, alpha=STD_ALPHA)
+    ax.plot(zs, mu_model_lu - mu_om00_ox00, "--", color=STD_COL, alpha=STD_ALPHA)
+    ax.plot(zs, mu_model_uu - mu_om00_ox00, "--", color=STD_COL, alpha=STD_ALPHA)
+    ax.plot(zs, mu_model_ul - mu_om00_ox00, "--", color=STD_COL, alpha=STD_ALPHA)
     # ax.set_xlim(0, 1.0)
     ax.axhline(y=0.0, ls=":", color="black")
     ax.set_xlabel("Redshift")
-    ax.set_ylabel("Magnitude")
+    ax.set_ylabel("Magnitude Difference")
     ax.legend(frameon=False)
     ax.grid()
 
-    fig.savefig(
-        f"{project_dir}/FitModels/plots/{filename}/model_comparison.png",
-        bbox_inches="tight",
-        transparent=False,
-        facecolor="w",
-    )
-    fig.savefig(
-        f"{project_dir}/FitModels/plots/{filename}/model_comparison.pdf",
-        bbox_inches="tight",
-        transparent=False,
-        facecolor="w",
-    )
+    saveFigure(fig, filename, "model_comparison")
 
     plt.close(fig)
+
+    # save all values to a file for later reference
+    with open(
+        f"{PROJECT_DIR}/FitModels/plots/{filename}/parameters.txt", "w"
+    ) as writer:
+        writer.write(
+            f"{filename}:"
+            + f"\n\t(om,ol)=({oms[ibest[0]]},{ols[ibest[1]]})"
+            + f"\n\tReduced chi^2 = {chi2_reduced[ibest[0],ibest[1]]}"
+            + f"\n\t{sd_lower_l=}"
+            + f"\n\t{sd_upper_l=}"
+            + f"\n\t{sd_lower_m=}"
+            + f"\n\t{sd_upper_m=}"
+        )
 
 
 def test_main():
@@ -509,5 +473,5 @@ def main():
 
 
 if __name__ == "__main__":
-    # test_main()
+    # test_main()  # Runs SIGNIFICANTLY faster, good for fast prototyping! Unfortunately, does not give very good results.
     main()
